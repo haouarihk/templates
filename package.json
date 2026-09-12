@@ -24,6 +24,7 @@
     "build.server": "vite build -c adapters/static/vite.config.ts",
     "build.static": "npm run build.client && npm run build.server",
     "serve": "npx --yes serve dist",
+    "serve.bun": "bun serve.ts",
     "previews": "node scripts/capture-previews.mjs"
   },
   "devDependencies": {
