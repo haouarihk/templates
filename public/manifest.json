@@ -1,0 +1,9 @@
+{
+  "$schema": "https://json.schemastore.org/web-manifest-combined.json",
+  "name": "haouarihk — scroll-engineering templates",
+  "short_name": "haouarihk",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#0a0a0a",
+  "description": "Landing pages that replace the browser's scrollbar with something worth scrolling."
+}

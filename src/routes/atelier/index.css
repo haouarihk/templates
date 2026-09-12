@@ -1,0 +1,500 @@
+/* Atelier Verrière — architecture practice.
+   Engine: Lenis in transform mode (native scroll drives a fixed, translated
+   layer) + GSAP ScrollTrigger for the pinned scenes. Namespaced `at-`. */
+
+.at {
+  --bg: #12100d;
+  --bg-translucent: rgba(18, 16, 13, 0.72);
+  --ink: #efe9dd;
+  --muted: #8c8579;
+  --line: rgba(239, 233, 221, 0.16);
+  --accent: #b89a6a;
+  --gutter: clamp(20px, 5vw, 72px);
+  --font-display: 'Cormorant Garamond', 'Instrument Serif', Georgia, serif;
+  background: var(--bg);
+  color: var(--ink);
+}
+
+/* The scroll architecture: a fixed viewport paints the content, a spacer in
+   normal flow gives the document its real height. The document scrolls; the
+   content never does — it is translated. */
+.at-viewport {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  z-index: 1;
+}
+
+.at-content {
+  will-change: transform;
+}
+
+.at-spacer {
+  pointer-events: none;
+}
+
+/* Reduced motion: Lenis stands down, so the layer must behave like a document
+   again or nothing would scroll at all. */
+.at[data-native='true'] .at-viewport {
+  position: static;
+  overflow: visible;
+}
+
+.at[data-native='true'] .at-content {
+  transform: none !important;
+}
+
+.at[data-native='true'] .at-spacer {
+  display: none;
+}
+
+/* ------------------------------------------------------------------ hero */
+
+.at-hero {
+  position: relative;
+  height: 100svh;
+  display: grid;
+  grid-template-rows: 1fr auto;
+  padding: clamp(70px, 12vh, 120px) var(--gutter) clamp(24px, 5vh, 46px);
+  overflow: hidden;
+}
+
+.at-hero__draw {
+  position: absolute;
+  left: 50%;
+  top: 46%;
+  translate: -50% -50%;
+  width: min(1180px, 92vw);
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.at-hero__draw path,
+.at-hero__draw line {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+.at-hero__title {
+  align-self: center;
+  position: relative;
+  font-family: var(--font-display);
+  font-weight: 300;
+  font-size: clamp(3rem, 12.5vw, 13rem);
+  line-height: 0.9;
+  letter-spacing: -0.02em;
+  text-align: center;
+  margin: 0;
+}
+
+.at-hero__title em {
+  display: block;
+  font-style: italic;
+  color: var(--accent);
+}
+
+.at-hero__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 28px;
+  justify-content: space-between;
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* -------------------------------------------------------------- sections */
+
+.at-section {
+  padding: clamp(90px, 16vh, 200px) var(--gutter);
+}
+
+.at-label {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: clamp(30px, 6vh, 60px);
+}
+
+.at-label::before {
+  content: '';
+  width: 30px;
+  height: 1px;
+  background: var(--accent);
+}
+
+.at-statement p {
+  font-family: var(--font-display);
+  font-weight: 300;
+  font-size: clamp(1.7rem, 5vw, 4.2rem);
+  line-height: 1.14;
+  letter-spacing: -0.015em;
+  max-width: 20ch;
+}
+
+.at-statement em {
+  font-style: italic;
+  color: var(--accent);
+}
+
+.at-statement__foot {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: clamp(26px, 4vw, 60px);
+  margin-top: clamp(50px, 9vh, 110px);
+  padding-top: 26px;
+  border-top: 1px solid var(--line);
+}
+
+.at-statement__foot p {
+  font-family: var(--font-sans);
+  font-size: 0.9rem;
+  line-height: 1.65;
+  color: var(--muted);
+  max-width: none;
+}
+
+/* ----------------------------------------------- pinned section drawing */
+
+/* The section's height *is* its scrub length: one viewport of stage plus the
+   travel the drawing needs. The stage is absolutely placed at the top and
+   translated down to hold it in frame — pinning, done by hand. */
+.at-scene {
+  position: relative;
+  height: 340svh;
+}
+
+.at-scene__stage {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 100svh;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  padding: clamp(64px, 11vh, 104px) var(--gutter) clamp(24px, 5vh, 48px);
+  overflow: hidden;
+}
+
+.at-scene__drawing {
+  place-self: center;
+  width: 100%;
+  max-height: 100%;
+}
+
+.at-scene__drawing path,
+.at-scene__drawing line,
+.at-scene__drawing circle {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 1.15;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
+/* Secondary information sits back from the primary structure. */
+.at-scene__drawing [data-weight='thin'] {
+  stroke: var(--muted);
+  stroke-width: 0.75;
+}
+
+.at-scene__drawing [data-weight='accent'] {
+  stroke: var(--accent);
+  stroke-width: 1.15;
+}
+
+.at-scene__drawing text {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  fill: var(--muted);
+  stroke: none;
+}
+
+.at-scene__head {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.at-scene__foot {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+  flex-wrap: wrap;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+
+.at-scene__caption {
+  position: relative;
+  /* Every caption is absolutely stacked so they can cross-fade in place, which
+     means this box has no intrinsic width of its own — it has to be told. */
+  flex: 1 1 clamp(260px, 42vw, 560px);
+  min-height: 5.2em;
+  max-width: 56ch;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  color: var(--muted);
+}
+
+.at-scene__caption span {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transform: translateY(9px);
+  transition:
+    opacity 0.5s var(--ease-out),
+    transform 0.5s var(--ease-out);
+}
+
+.at-scene__caption span[data-active='true'] {
+  opacity: 1;
+  transform: none;
+}
+
+.at-scene__caption b {
+  display: block;
+  color: var(--ink);
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+
+.at-scene__meter {
+  flex: 0 0 clamp(120px, 22vw, 240px);
+}
+
+.at-scene__meter i {
+  display: block;
+  height: 1px;
+  background: var(--line);
+  position: relative;
+}
+
+.at-scene__meter i::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--accent);
+  transform: scaleX(var(--p, 0));
+  transform-origin: left;
+}
+
+.at-scene__meter span {
+  display: block;
+  margin-top: 8px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* --------------------------------------------------- horizontal gallery */
+
+/* Height is assigned by JS: one viewport, plus however far the track travels. */
+.at-gallery {
+  position: relative;
+}
+
+.at-gallery__stage {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 100svh;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  padding-top: clamp(64px, 11vh, 104px);
+  overflow: hidden;
+}
+
+.at-gallery__head {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+  padding: 0 var(--gutter) clamp(20px, 4vh, 38px);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.at-gallery__track {
+  display: flex;
+  align-items: stretch;
+  /* Grid items default to `min-height: auto`, which lets this row grow past
+     its 1fr track and pushes the captions under the clip. */
+  min-height: 0;
+  gap: clamp(18px, 2.6vw, 44px);
+  padding: 0 var(--gutter) clamp(28px, 6vh, 60px);
+  width: max-content;
+  will-change: transform;
+}
+
+.at-panel {
+  flex: 0 0 clamp(280px, 34vw, 480px);
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  gap: 20px;
+  min-height: 0;
+}
+
+.at-panel__art {
+  position: relative;
+  border: 1px solid var(--line);
+  background: #171410;
+  overflow: hidden;
+  min-height: 0;
+}
+
+.at-panel__art svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.at-panel__no {
+  position: absolute;
+  top: 12px;
+  left: 14px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  color: var(--accent);
+}
+
+.at-panel__body h3 {
+  font-family: var(--font-display);
+  font-weight: 300;
+  font-size: clamp(1.5rem, 2.6vw, 2.3rem);
+  line-height: 1.05;
+  letter-spacing: -0.01em;
+  margin-bottom: 10px;
+}
+
+.at-panel__body dl {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 3px 14px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.at-panel__body dt {
+  opacity: 0.6;
+}
+
+.at-panel__body dd {
+  margin: 0;
+  color: var(--ink);
+}
+
+/* -------------------------------------------------------------- practice */
+
+.at-numbers {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1px;
+  background: var(--line);
+  border-block: 1px solid var(--line);
+}
+
+.at-numbers div {
+  background: var(--bg);
+  padding: 26px 22px 30px;
+}
+
+.at-numbers dt {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 14px;
+}
+
+.at-numbers dd {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 300;
+  font-size: clamp(2.4rem, 4.5vw, 4rem);
+  line-height: 0.95;
+  letter-spacing: -0.02em;
+}
+
+.at-numbers dd small {
+  display: block;
+  font-family: var(--font-sans);
+  font-size: 0.82rem;
+  letter-spacing: 0;
+  color: var(--muted);
+  margin-top: 12px;
+  line-height: 1.5;
+}
+
+@media (max-width: 720px) {
+  .at-scene__drawing {
+    /* The section is wide; let it keep its proportions rather than shrink to
+       an unreadable sliver. */
+    width: 160%;
+    margin-left: -30%;
+  }
+}
+
+/* Reduced-motion / no-engine fallback for the horizontal gallery: give it back
+   a real scrollbar instead of a scene that can never advance. */
+.at[data-native='true'] .at-gallery {
+  height: auto !important;
+}
+
+.at[data-native='true'] .at-gallery__stage {
+  position: static;
+  height: auto;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+}
+
+.at[data-native='true'] .at-gallery__track {
+  transform: none !important;
+}
+
+.at[data-native='true'] .at-scene {
+  height: auto !important;
+}
+
+.at[data-native='true'] .at-scene__stage {
+  position: static;
+  transform: none !important;
+  height: auto;
+}
+
+.at[data-native='true'] .at-scene__drawing path {
+  stroke-dashoffset: 0 !important;
+}

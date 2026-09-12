@@ -1,0 +1,390 @@
+/* =========================================================================
+   Global foundation.
+   Deliberately thin: each case study is a different brand and sets its own
+   palette and type on its own root. What lives here is the reset, the scroll
+   engine's structural requirements, and the shared motion primitives
+   (split text, reveal, cursor) that every page reuses.
+   ========================================================================= */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body,
+h1,
+h2,
+h3,
+h4,
+p,
+figure,
+blockquote,
+dl,
+dd {
+  margin: 0;
+}
+
+body {
+  min-height: 100vh;
+  font-family: var(--font-sans);
+  background: var(--bg, #08080a);
+  color: var(--ink, #ece9e2);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+img,
+picture,
+video,
+canvas,
+svg {
+  display: block;
+  max-width: 100%;
+}
+
+input,
+button,
+textarea,
+select {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+ul,
+ol {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+:root {
+  --font-sans: 'Inter Tight', -apple-system, BlinkMacSystemFont, 'Segoe UI',
+    Roboto, Helvetica, Arial, sans-serif;
+  --font-serif: 'Instrument Serif', 'Iowan Old Style', Georgia, serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  /* Studio palette. Case studies override these on their own root element. */
+  --bg: #08080a;
+  --ink: #ece9e2;
+  --muted: #83807a;
+  --line: rgba(236, 233, 226, 0.14);
+  --accent: #ff4d17;
+
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+}
+
+/* -------------------------------------------------------------------------
+   Virtual scroll structure.
+   `.vs-active` is set by the engine once it takes over; `.vs-native` when it
+   has stepped aside for reduced-motion.
+   ------------------------------------------------------------------------- */
+
+html.vs-active,
+html.vs-active body {
+  overflow: hidden;
+  height: 100%;
+  overscroll-behavior: none;
+}
+
+html.vs-native,
+html.vs-native body {
+  overflow: visible;
+  height: auto;
+}
+
+/* The engine sets these inline too, but declaring them avoids a first-paint
+   jump before hydration. */
+[data-vs-wrapper] {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+}
+
+html.vs-native [data-vs-wrapper] {
+  position: static;
+  overflow: visible;
+}
+
+/* -------------------------------------------------------------------------
+   Split text
+   ------------------------------------------------------------------------- */
+
+.split__unit {
+  display: inline-block;
+  vertical-align: top;
+  /* A mask crops descenders on tight line-heights; pad the box down and pull
+     the extra height back out of layout. */
+  padding-bottom: 0.14em;
+  margin-bottom: -0.14em;
+  /* Only the bottom edge should mask — that is the side the text arrives from.
+     `overflow: hidden` would clip all four, which slices the overhang off
+     italic and script faces and shaves tall ascenders. */
+  clip-path: inset(-0.4em -0.35em 0 -0.35em);
+}
+
+.split__inner {
+  display: inline-block;
+  will-change: transform;
+  transform: translateY(110%);
+  transition:
+    transform 1s var(--ease-out),
+    opacity 1s var(--ease-out);
+  transition-delay: calc(var(--i, 0) * var(--stagger, 45ms));
+}
+
+.is-in .split__inner,
+.split.is-in .split__inner {
+  transform: translateY(0);
+}
+
+/* -------------------------------------------------------------------------
+   Reveal
+   ------------------------------------------------------------------------- */
+
+[data-reveal] {
+  --reveal-y: 28px;
+  opacity: 0;
+  transform: translate3d(0, var(--reveal-y), 0);
+  transition:
+    opacity 0.9s var(--ease-out),
+    transform 0.9s var(--ease-out);
+  transition-delay: calc(var(--i, 0) * var(--stagger, 70ms));
+}
+
+[data-reveal='fade'] {
+  --reveal-y: 0px;
+}
+
+[data-reveal='scale'] {
+  transform: translate3d(0, var(--reveal-y), 0) scale(1.06);
+}
+
+[data-reveal].is-in {
+  opacity: 1;
+  transform: translate3d(0, 0, 0) scale(1);
+}
+
+/* Elements that reveal by unmasking rather than moving. */
+[data-reveal='clip'] {
+  opacity: 1;
+  transform: none;
+  clip-path: inset(0 0 100% 0);
+  transition: clip-path 1.1s var(--ease-out);
+  transition-delay: calc(var(--i, 0) * var(--stagger, 70ms));
+}
+
+[data-reveal='clip'].is-in {
+  clip-path: inset(0 0 0 0);
+}
+
+/* -------------------------------------------------------------------------
+   Custom cursor
+   ------------------------------------------------------------------------- */
+
+.cursor {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  mix-blend-mode: difference;
+}
+
+.cursor[data-visible='true'] {
+  opacity: 1;
+}
+
+.cursor__dot,
+.cursor__ring {
+  position: absolute;
+  top: 0;
+  left: 0;
+  border-radius: 999px;
+  will-change: transform;
+}
+
+.cursor__dot {
+  width: 6px;
+  height: 6px;
+  background: #fff;
+  transition: opacity 0.25s ease;
+}
+
+/**
+ * The ring is split in two on purpose.
+ *
+ * `scale`, `translate` and `rotate` are *individual transform properties*, and
+ * CSS composites them BEFORE the `transform` property. Putting a press-state
+ * `scale` on the same element that JS drives with `transform: translate3d(...)`
+ * makes the scale multiply the translation, so the ring jumps to a fraction of
+ * its distance from the viewport origin the moment you press.
+ *
+ * So: the outer element carries position and size and is the only thing JS
+ * transforms; the inner one carries the border and the press scale.
+ */
+.cursor__ring {
+  width: 38px;
+  height: 38px;
+  transition:
+    width 0.4s var(--ease-out),
+    height 0.4s var(--ease-out);
+}
+
+.cursor__ring-in {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  transition:
+    background-color 0.4s var(--ease-out),
+    border-color 0.4s var(--ease-out),
+    scale 0.25s var(--ease-out);
+}
+
+.cursor__label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #000;
+  opacity: 0;
+  transition: opacity 0.25s ease;
+  white-space: nowrap;
+}
+
+.cursor[data-state='view'] .cursor__ring,
+.cursor[data-state='hover'] .cursor__ring {
+  width: 92px;
+  height: 92px;
+}
+
+.cursor[data-state='view'] .cursor__ring-in,
+.cursor[data-state='hover'] .cursor__ring-in {
+  background: #fff;
+  border-color: #fff;
+}
+
+.cursor[data-state='view'] .cursor__label {
+  opacity: 1;
+}
+
+.cursor[data-state='view'] .cursor__dot,
+.cursor[data-state='hover'] .cursor__dot {
+  opacity: 0;
+}
+
+.cursor[data-down='true'] .cursor__ring-in {
+  scale: 0.86;
+}
+
+/* Hide the OS cursor only where ours is actually running. */
+@media (pointer: fine) {
+  html.has-cursor,
+  html.has-cursor * {
+    cursor: none;
+  }
+}
+
+/* -------------------------------------------------------------------------
+   Focus + selection
+   ------------------------------------------------------------------------- */
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
+::selection {
+  background: var(--accent);
+  color: var(--bg);
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Skip link — essential once scroll is hijacked. */
+.skip-link {
+  position: fixed;
+  top: 12px;
+  left: 12px;
+  z-index: 10001;
+  padding: 10px 16px;
+  background: var(--ink);
+  color: var(--bg);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  transform: translateY(-160%);
+  transition: transform 0.25s var(--ease-out);
+}
+
+.skip-link:focus-visible {
+  transform: translateY(0);
+}
+
+/* -------------------------------------------------------------------------
+   Reduced motion.
+   The engine already falls back to native scroll; this stops every decorative
+   transition on top of it.
+   ------------------------------------------------------------------------- */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .split__inner {
+    transform: none !important;
+  }
+
+  [data-reveal] {
+    opacity: 1 !important;
+    transform: none !important;
+    clip-path: none !important;
+  }
+
+  .cursor {
+    display: none;
+  }
+
+  html.has-cursor,
+  html.has-cursor * {
+    cursor: auto;
+  }
+}

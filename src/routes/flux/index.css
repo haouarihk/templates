@@ -1,0 +1,347 @@
+/* FLUX — ready-to-wear.
+   Engine: the studio's VirtualScroll driving a Three.js layer whose planes are
+   pinned to DOM placeholders and displaced by scroll velocity. Namespaced `fx-`. */
+
+html:has(.fx) {
+  --bg: #0a0a0a;
+  --ink: #f5f5f5;
+  --muted: #8a8a8a;
+  --line: rgba(245, 245, 245, 0.14);
+  --accent: #ff2d55;
+  background: #0a0a0a;
+}
+
+.fx {
+  --bg-translucent: rgba(10, 10, 10, 0.66);
+  --gutter: clamp(20px, 5vw, 72px);
+  --font-display: 'Archivo', 'Inter Tight', system-ui, sans-serif;
+  color: var(--ink);
+}
+
+/* The WebGL layer sits behind the text. The scrolling content above it must
+   stay transparent or it would simply cover the planes. */
+.fx-gl {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.fx-gl canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.fx [data-vs-wrapper] {
+  z-index: 2;
+  background: transparent;
+}
+
+/* Each placeholder reserves layout for a plane; the pixels come from WebGL. */
+.fx-media {
+  position: relative;
+  aspect-ratio: 4 / 5;
+  /* Keep a look inside the viewport so it can be read as one image. */
+  max-height: 76svh;
+}
+
+/* Only the fallback needs a visible frame. With the GL layer running the plane
+   bows past these bounds on purpose, and a static outline would read as a
+   clipping bug rather than as the effect. */
+.fx[data-native='true'] .fx-media,
+.fx[data-native='true'] .fx-hero__plate {
+  background: rgba(245, 245, 245, 0.03);
+  outline: 1px solid var(--line);
+}
+
+/* Fallback path paints the look straight into the DOM instead. Matches every
+   slot, including the hero plate, which is not a .fx-media. */
+[data-gl] > canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.fx[data-native='true'] .fx-gl {
+  display: none;
+}
+
+.fx[data-native='true'] [data-vs-wrapper] {
+  position: static;
+  overflow: visible;
+}
+
+/* ------------------------------------------------------------------ hero */
+
+.fx-hero {
+  position: relative;
+  min-height: 100svh;
+  display: grid;
+  grid-template-rows: 1fr auto;
+  padding: clamp(84px, 13vh, 132px) var(--gutter) clamp(24px, 5vh, 46px);
+}
+
+.fx-hero__mark {
+  align-self: center;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-stretch: 125%;
+  font-size: clamp(4.5rem, 25vw, 26rem);
+  line-height: 0.78;
+  letter-spacing: -0.045em;
+  margin: 0;
+}
+
+.fx-hero__sub {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 30px;
+  justify-content: space-between;
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.fx-hero__sub b {
+  color: var(--accent);
+  font-weight: 400;
+}
+
+/* -------------------------------------------------------------- sections */
+
+.fx-section {
+  position: relative;
+  padding: clamp(90px, 16vh, 200px) var(--gutter);
+}
+
+.fx-label {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: clamp(30px, 6vh, 60px);
+}
+
+.fx-label::before {
+  content: '';
+  width: 30px;
+  height: 1px;
+  background: var(--accent);
+}
+
+.fx-statement p {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-stretch: 108%;
+  font-size: clamp(1.6rem, 4.6vw, 3.9rem);
+  line-height: 1.08;
+  letter-spacing: -0.03em;
+  max-width: 19ch;
+}
+
+.fx-statement p + p {
+  margin-top: clamp(22px, 4vh, 40px);
+  margin-left: auto;
+  text-align: right;
+  color: var(--muted);
+}
+
+.fx-statement em {
+  font-style: normal;
+  color: var(--accent);
+}
+
+/* -------------------------------------------------------------- lookbook */
+
+.fx-look {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: clamp(16px, 3vw, 44px);
+  align-items: end;
+  margin-bottom: clamp(70px, 14vh, 190px);
+}
+
+.fx-look:nth-child(even) .fx-look__frame {
+  grid-column: 7 / span 6;
+}
+
+.fx-look:nth-child(even) .fx-look__meta {
+  grid-column: 1 / span 5;
+  grid-row: 1;
+  text-align: right;
+}
+
+.fx-look__frame {
+  grid-column: 1 / span 6;
+}
+
+.fx-look__meta {
+  grid-column: 8 / span 5;
+  padding-bottom: 8px;
+}
+
+.fx-look__no {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  color: var(--accent);
+  margin-bottom: 14px;
+}
+
+.fx-look__meta h3 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-stretch: 112%;
+  font-size: clamp(1.3rem, 2.4vw, 2.1rem);
+  line-height: 1.05;
+  letter-spacing: -0.025em;
+  margin-bottom: 14px;
+}
+
+.fx-look__meta dl {
+  display: grid;
+  gap: 4px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.fx-look__meta dd {
+  margin: 0;
+  color: var(--ink);
+}
+
+@media (max-width: 780px) {
+  .fx-look,
+  .fx-look:nth-child(even) {
+    grid-template-columns: 1fr;
+    gap: 18px;
+  }
+  .fx-look__frame,
+  .fx-look:nth-child(even) .fx-look__frame {
+    grid-column: 1;
+    grid-row: 1;
+  }
+  .fx-look__meta,
+  .fx-look:nth-child(even) .fx-look__meta {
+    grid-column: 1;
+    grid-row: 2;
+    text-align: left;
+  }
+}
+
+/* ------------------------------------------------------------- materials */
+
+.fx-materials {
+  border-top: 1px solid var(--line);
+}
+
+.fx-materials li {
+  display: grid;
+  grid-template-columns: 58px minmax(0, 1.1fr) minmax(0, 1fr) auto;
+  gap: clamp(14px, 3vw, 44px);
+  align-items: baseline;
+  padding: 26px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 0.92rem;
+}
+
+.fx-materials li > span:first-child,
+.fx-materials li > span:last-child {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.fx-materials b {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-stretch: 110%;
+  font-size: clamp(1.05rem, 1.7vw, 1.5rem);
+  letter-spacing: -0.015em;
+}
+
+.fx-materials span.fx-note {
+  color: var(--muted);
+}
+
+@media (max-width: 760px) {
+  .fx-materials li {
+    grid-template-columns: 44px 1fr;
+  }
+  .fx-materials li > span.fx-note,
+  .fx-materials li > span:last-child {
+    grid-column: 2;
+  }
+}
+
+/* ---------------------------------------------------------------- readout */
+
+.fx-readout {
+  position: fixed;
+  left: var(--gutter);
+  bottom: 20px;
+  z-index: 60;
+  display: flex;
+  gap: 20px;
+  padding: 9px 15px 10px;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  background: rgba(10, 10, 10, 0.66);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+  pointer-events: none;
+}
+
+.fx-readout b {
+  display: block;
+  font-weight: 400;
+  font-size: 9px;
+  opacity: 0.55;
+}
+
+.fx-readout span {
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 900px) {
+  .fx-readout {
+    display: none;
+  }
+}
+
+/* A plane held in the hero, alongside the wordmark. */
+.fx-hero__plate {
+  position: absolute;
+  top: clamp(84px, 13vh, 132px);
+  right: var(--gutter);
+  bottom: clamp(96px, 13vh, 132px);
+  width: min(36vw, 440px);
+}
+
+@media (max-width: 900px) {
+  .fx-hero__plate {
+    display: none;
+  }
+}

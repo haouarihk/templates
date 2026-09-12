@@ -1,0 +1,402 @@
+/* Pulse Festival — three days of live music.
+   Engine: the studio's VirtualScroll, feeding scroll velocity into a Matter.js
+   world as an inertial force. Motion One handles the flat animation.
+   Namespaced `ps-`. */
+
+html:has(.ps) {
+  --bg: #0d0618;
+  --ink: #f2ecff;
+  --muted: #8b82a3;
+  --line: rgba(242, 236, 255, 0.15);
+  --accent: #ccff00;
+  background: #0d0618;
+}
+
+.ps {
+  --bg-translucent: rgba(13, 6, 24, 0.7);
+  --gutter: clamp(20px, 5vw, 72px);
+  --font-display: 'Bebas Neue', 'Inter Tight', system-ui, sans-serif;
+  color: var(--ink);
+}
+
+/* A slow wash so the black isn't flat. */
+.ps-aura {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(60% 44% at 18% 12%, rgba(120, 60, 220, 0.28), transparent 70%),
+    radial-gradient(50% 40% at 84% 78%, rgba(204, 255, 0, 0.12), transparent 72%);
+}
+
+.ps [data-vs-wrapper] {
+  z-index: 1;
+}
+
+/* ------------------------------------------------------------------ hero */
+
+.ps-hero {
+  min-height: 100svh;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  gap: 20px;
+  padding: clamp(84px, 13vh, 132px) var(--gutter) clamp(24px, 5vh, 46px);
+}
+
+.ps-hero__kicker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 26px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.ps-hero__mark {
+  align-self: center;
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: clamp(5rem, 27vw, 24rem);
+  line-height: 0.82;
+  letter-spacing: 0.005em;
+  margin: 0;
+  text-align: center;
+}
+
+.ps-hero__mark span {
+  display: block;
+  overflow: hidden;
+}
+
+.ps-hero__mark i {
+  display: block;
+  font-style: normal;
+}
+
+.ps-hero__mark em {
+  font-style: normal;
+  color: var(--accent);
+}
+
+.ps-hero__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 30px;
+  justify-content: space-between;
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* ------------------------------------------------- physics lineup stage */
+
+.ps-scene {
+  position: relative;
+  height: 460svh;
+}
+
+.ps-stage {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 100svh;
+  overflow: hidden;
+}
+
+.ps-stage__head {
+  position: absolute;
+  top: clamp(74px, 12vh, 116px);
+  left: var(--gutter);
+  right: var(--gutter);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 26px;
+  justify-content: space-between;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--muted);
+  z-index: 2;
+}
+
+.ps-stage__title {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  translate: -50% -50%;
+  font-family: var(--font-display);
+  font-size: clamp(3rem, 13vw, 12rem);
+  line-height: 0.9;
+  letter-spacing: 0.01em;
+  color: rgba(242, 236, 255, 0.055);
+  pointer-events: none;
+  white-space: nowrap;
+  z-index: 0;
+}
+
+/* The physics arena. Bodies are laid out here in pixel coordinates, and its
+   bottom edge is the simulation's floor — so it has to stop short of the
+   readout, or the pile settles on top of it. */
+.ps-arena {
+  position: absolute;
+  inset: clamp(120px, 18vh, 176px) 0 clamp(52px, 7vh, 74px) 0;
+  z-index: 1;
+}
+
+.ps-pill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 20px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: rgba(28, 14, 48, 0.86);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  font-family: var(--font-display);
+  font-size: clamp(1.1rem, 2.3vw, 2rem);
+  line-height: 1;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  will-change: transform;
+  /* Positioned by the simulation; hidden until it is released into the world. */
+  opacity: 0;
+}
+
+.ps-pill[data-live='true'] {
+  opacity: 1;
+}
+
+.ps-pill--headline {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #0d0618;
+}
+
+.ps-pill small {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  opacity: 0.6;
+}
+
+.ps-readout {
+  position: absolute;
+  left: var(--gutter);
+  right: var(--gutter);
+  bottom: clamp(18px, 3vh, 30px);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 26px;
+  align-items: center;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+  z-index: 2;
+  pointer-events: none;
+}
+
+.ps-readout b {
+  font-weight: 400;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Fallback: no simulation, just a legible lineup. */
+.ps[data-native='true'] .ps-scene {
+  height: auto;
+}
+
+.ps[data-native='true'] .ps-stage {
+  position: static;
+  height: auto;
+  padding: clamp(70px, 12vh, 120px) var(--gutter);
+}
+
+.ps[data-native='true'] .ps-stage__head,
+.ps[data-native='true'] .ps-readout {
+  position: static;
+  margin-bottom: 30px;
+}
+
+.ps[data-native='true'] .ps-stage__title {
+  position: static;
+  translate: none;
+  white-space: normal;
+  color: var(--ink);
+  margin-bottom: 24px;
+}
+
+.ps[data-native='true'] .ps-arena {
+  position: static;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.ps[data-native='true'] .ps-pill {
+  position: static;
+  opacity: 1;
+  transform: none !important;
+}
+
+/* -------------------------------------------------------------- sections */
+
+.ps-section {
+  position: relative;
+  padding: clamp(90px, 15vh, 180px) var(--gutter);
+  border-top: 1px solid var(--line);
+}
+
+.ps-label {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: clamp(30px, 6vh, 60px);
+}
+
+.ps-label::before {
+  content: '';
+  width: 30px;
+  height: 1px;
+  background: var(--accent);
+}
+
+.ps-days {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 1px;
+  background: var(--line);
+  border: 1px solid var(--line);
+}
+
+.ps-day {
+  background: var(--bg);
+  padding: 26px 22px 32px;
+}
+
+.ps-day h3 {
+  font-family: var(--font-display);
+  font-size: clamp(2rem, 3.4vw, 3rem);
+  line-height: 0.95;
+  letter-spacing: 0.01em;
+  margin-bottom: 4px;
+}
+
+.ps-day__date {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 22px;
+}
+
+.ps-day ul {
+  display: grid;
+  gap: 11px;
+}
+
+.ps-day li {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  font-size: 0.9rem;
+  padding-bottom: 11px;
+  border-bottom: 1px solid var(--line);
+}
+
+.ps-day time {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+  padding-top: 3px;
+}
+
+/* --------------------------------------------------------------- tickets */
+
+.ps-tiers {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: clamp(16px, 2.4vw, 30px);
+}
+
+.ps-tier {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 26px 24px 28px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+}
+
+.ps-tier--best {
+  border-color: var(--accent);
+}
+
+.ps-tier__name {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.ps-tier--best .ps-tier__name {
+  color: var(--accent);
+}
+
+.ps-tier__price {
+  font-family: var(--font-display);
+  font-size: clamp(2.6rem, 5vw, 4rem);
+  line-height: 0.9;
+  letter-spacing: 0.01em;
+}
+
+.ps-tier p {
+  font-size: 0.88rem;
+  line-height: 1.6;
+  color: var(--muted);
+  flex: 1;
+}
+
+.ps-tier__cta {
+  align-self: flex-start;
+  padding: 13px 22px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  transition:
+    background-color 0.35s var(--ease-out),
+    color 0.35s var(--ease-out),
+    border-color 0.35s var(--ease-out);
+}
+
+.ps-tier__cta:hover {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #0d0618;
+}

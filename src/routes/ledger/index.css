@@ -1,0 +1,719 @@
+/* Ledger — treasury operations for platform businesses.
+   The counterpoint case: native scroll, untouched. Every effect on this page is
+   a CSS scroll-timeline, so there is no rAF loop and no scroll listener.
+   Namespaced `ld-`. */
+
+html:has(.ld) {
+  --bg: #ffffff;
+  --surface: #f6f7fa;
+  --ink: #0b1020;
+  --muted: #5a6478;
+  --line: rgba(11, 16, 32, 0.12);
+  --accent: #3d6bff;
+  --accent-strong: #2a52d8;
+  background: #ffffff;
+  /* Native smooth scrolling for in-page anchors — the browser's, not ours. */
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html:has(.ld) {
+    scroll-behavior: auto;
+  }
+}
+
+.ld {
+  --gutter: clamp(20px, 5vw, 72px);
+  --bg-translucent: rgba(255, 255, 255, 0.78);
+  --font-display: 'Plus Jakarta Sans', 'Inter Tight', system-ui, sans-serif;
+  font-family: var(--font-display);
+  background: var(--bg);
+  color: var(--ink);
+}
+
+/* ---------------------------------------------------------------- progress
+   Driven by scroll(root block): the document's own scroll position is the
+   timeline. No listener, no JS, and it cannot fall out of sync. */
+
+.ld-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  z-index: 90;
+  background: rgba(11, 16, 32, 0.08);
+}
+
+.ld-progress__fill {
+  height: 100%;
+  background: var(--accent);
+  transform: scaleX(0);
+  transform-origin: left;
+}
+
+@supports (animation-timeline: scroll()) {
+  .ld-progress__fill {
+    animation: ld-grow linear both;
+    animation-timeline: scroll(root block);
+  }
+}
+
+@keyframes ld-grow {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+/* ------------------------------------------------------------------ reveal
+   Final state is the default, so a browser without scroll-timelines simply
+   shows the finished page. The animation is the enhancement. */
+
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .ld-reveal {
+      animation: ld-rise linear both;
+      animation-timeline: view();
+      animation-range: entry 6% cover 32%;
+    }
+  }
+}
+
+@keyframes ld-rise {
+  from {
+    opacity: 0;
+    transform: translateY(28px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ------------------------------------------------------------------- hero */
+
+.ld-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: clamp(40px, 6vw, 76px);
+  align-items: center;
+  padding: clamp(120px, 18vh, 190px) var(--gutter) clamp(70px, 10vh, 120px);
+}
+
+@media (min-width: 1000px) {
+  .ld-hero {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
+  }
+}
+
+.ld-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  padding: 7px 14px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  color: var(--muted);
+  margin-bottom: 26px;
+}
+
+.ld-eyebrow i {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--accent);
+}
+
+.ld-hero h1 {
+  font-size: clamp(2.4rem, 5.2vw, 4.3rem);
+  line-height: 1.04;
+  letter-spacing: -0.035em;
+  font-weight: 700;
+  margin-bottom: 22px;
+}
+
+.ld-hero h1 em {
+  font-style: normal;
+  color: var(--accent);
+}
+
+.ld-hero p {
+  max-width: 46ch;
+  font-size: clamp(1rem, 1.25vw, 1.14rem);
+  line-height: 1.6;
+  color: var(--muted);
+}
+
+.ld-cta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 32px;
+}
+
+.ld-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  padding: 14px 24px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  border: 1px solid transparent;
+  transition:
+    background-color 0.25s ease,
+    border-color 0.25s ease,
+    color 0.25s ease;
+}
+
+.ld-btn--primary {
+  background: var(--accent);
+  color: #fff;
+}
+
+.ld-btn--primary:hover {
+  background: var(--accent-strong);
+}
+
+.ld-btn--ghost {
+  border-color: var(--line);
+  color: var(--ink);
+}
+
+.ld-btn--ghost:hover {
+  border-color: var(--ink);
+}
+
+.ld-trust {
+  margin-top: 34px;
+  padding-top: 22px;
+  border-top: 1px solid var(--line);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 26px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+/* ------------------------------------------------------------- dashboard */
+
+.ld-card {
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--bg);
+  box-shadow:
+    0 1px 2px rgba(11, 16, 32, 0.04),
+    0 12px 40px rgba(11, 16, 32, 0.06);
+  overflow: hidden;
+}
+
+.ld-card__bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 13px 16px;
+  border-bottom: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.ld-card__dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+  background: rgba(11, 16, 32, 0.16);
+}
+
+.ld-card__title {
+  margin-left: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.ld-card__body {
+  padding: 22px 22px 12px;
+}
+
+.ld-stat__label {
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+
+/* Hero figure: one per view, sans, proportional figures (not tabular — at
+   display size tabular digits read loose). */
+.ld-stat__value {
+  font-size: clamp(2.2rem, 3.6vw, 3rem);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+
+.ld-stat__delta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #0f7a4d;
+}
+
+.ld-stat__delta span {
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.ld-chart {
+  margin-top: 20px;
+}
+
+.ld-chart svg {
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+/* Recessive chrome: hairline, solid, one step off the surface. */
+.ld-chart .grid {
+  stroke: rgba(11, 16, 32, 0.1);
+  stroke-width: 1;
+}
+
+.ld-chart .tick {
+  fill: var(--muted);
+  font-size: 9px;
+  font-variant-numeric: tabular-nums;
+}
+
+.ld-chart .col {
+  fill: var(--accent);
+  transition: fill 0.18s ease;
+}
+
+
+/* CSS-only hover layer — no script on this page, including in the chart. */
+.ld-bar__hit {
+  fill: transparent;
+}
+
+.ld-bar__tip {
+  opacity: 0;
+  transition: opacity 0.14s ease;
+  pointer-events: none;
+}
+
+.ld-bar:hover .ld-bar__tip {
+  opacity: 1;
+}
+
+.ld-bar:hover .col {
+  fill: var(--accent-strong);
+}
+
+.ld-bar__tip rect {
+  fill: var(--ink);
+}
+
+.ld-bar__tip text {
+  fill: #fff;
+  font-size: 9px;
+  font-weight: 600;
+}
+
+.ld-chart .label {
+  fill: var(--ink);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.ld-rows {
+  border-top: 1px solid var(--line);
+  margin-top: 18px;
+}
+
+.ld-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 13px;
+}
+
+.ld-row:last-child {
+  border-bottom: 0;
+}
+
+.ld-row__who {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.ld-row__avatar {
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  display: grid;
+  place-items: center;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--muted);
+  flex: none;
+}
+
+.ld-row__amt {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.ld-row__amt--in {
+  color: #0f7a4d;
+}
+
+/* -------------------------------------------------------------- sections */
+
+.ld-section {
+  padding: clamp(70px, 11vh, 130px) var(--gutter);
+  border-top: 1px solid var(--line);
+}
+
+.ld-kicker {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--accent);
+  margin-bottom: 16px;
+}
+
+.ld-h2 {
+  font-size: clamp(1.7rem, 3.4vw, 2.7rem);
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+  font-weight: 700;
+  max-width: 20ch;
+  margin-bottom: 18px;
+}
+
+.ld-sub {
+  max-width: 56ch;
+  font-size: 1rem;
+  line-height: 1.6;
+  color: var(--muted);
+}
+
+/* ---------------------------------------------------------- sticky flow
+   `position: sticky` works here precisely because nothing above it is
+   transformed. On the virtual-scroll cases it would not stick at all. */
+
+.ld-flow {
+  border-top: 1px solid var(--line);
+  view-timeline-name: --ld-flow;
+  view-timeline-axis: block;
+}
+
+.ld-flow__inner {
+  display: grid;
+  gap: clamp(30px, 5vw, 70px);
+  padding: 0 var(--gutter);
+}
+
+@media (min-width: 940px) {
+  .ld-flow__inner {
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+    align-items: start;
+  }
+}
+
+.ld-flow__aside {
+  position: sticky;
+  top: clamp(90px, 16vh, 150px);
+  padding-block: clamp(60px, 9vh, 110px);
+}
+
+/* The section has to be meaningfully taller than the viewport or the sticky
+   aside never engages and the per-step ranges compress into nothing. */
+.ld-flow__steps {
+  display: grid;
+  gap: clamp(22px, 5vh, 64px);
+  padding-block: clamp(80px, 13vh, 150px);
+}
+
+.ld-step {
+  display: grid;
+  grid-template-columns: 34px 1fr;
+  align-content: center;
+  gap: 16px;
+  min-height: clamp(190px, 29vh, 290px);
+  padding: clamp(26px, 4vw, 40px) clamp(22px, 3vw, 34px);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--bg);
+}
+
+.ld-step__n {
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.ld-step h3 {
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  margin-bottom: 7px;
+}
+
+.ld-step p {
+  font-size: 0.92rem;
+  line-height: 1.6;
+  color: var(--muted);
+}
+
+/* Each step lights up over its own slice of the section's view progress. */
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .ld-step {
+      animation: ld-step-in linear both;
+      animation-timeline: --ld-flow;
+    }
+    .ld-step:nth-child(1) {
+      animation-range: cover 6% cover 24%;
+    }
+    .ld-step:nth-child(2) {
+      animation-range: cover 22% cover 40%;
+    }
+    .ld-step:nth-child(3) {
+      animation-range: cover 38% cover 56%;
+    }
+    .ld-step:nth-child(4) {
+      animation-range: cover 54% cover 72%;
+    }
+  }
+}
+
+@keyframes ld-step-in {
+  from {
+    opacity: 0.32;
+    transform: translateY(20px);
+    border-color: var(--line);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    border-color: rgba(61, 107, 255, 0.5);
+  }
+}
+
+/* --------------------------------------------------------------- metrics
+   Counting with zero script: a registered custom property is interpolable, so
+   the scroll timeline animates the integer and `counter()` renders it. */
+
+@property --ld-n {
+  syntax: '<integer>';
+  initial-value: 0;
+  inherits: false;
+}
+
+.ld-metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 1px;
+  background: var(--line);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.ld-metric {
+  background: var(--bg);
+  padding: 26px 22px 30px;
+}
+
+.ld-metric dt {
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 12px;
+}
+
+.ld-metric dd {
+  margin: 0;
+  font-size: clamp(2rem, 3.4vw, 2.9rem);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+
+.ld-count {
+  counter-reset: ld-num var(--ld-n);
+}
+
+.ld-count::after {
+  content: counter(ld-num);
+}
+
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .ld-count {
+      animation: ld-count linear both;
+      animation-timeline: view();
+      /* Finish as the tile finishes entering, rather than a third of the way
+         up the viewport — otherwise the number is still climbing once it has
+         clearly arrived. */
+      animation-range: entry 15% entry 90%;
+    }
+  }
+}
+
+@keyframes ld-count {
+  from {
+    --ld-n: 0;
+  }
+}
+
+/* --------------------------------------------------------------- pricing
+   The billing toggle is a radio group plus :has() — interactive, still no JS. */
+
+.ld-pricing__switch {
+  display: inline-flex;
+  padding: 4px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+  margin-bottom: 34px;
+}
+
+.ld-pricing__switch label {
+  padding: 9px 20px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+  cursor: pointer;
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease;
+}
+
+.ld-pricing:has(#ld-monthly:checked) label[for='ld-monthly'],
+.ld-pricing:has(#ld-annual:checked) label[for='ld-annual'] {
+  background: var(--bg);
+  color: var(--ink);
+  box-shadow: 0 1px 3px rgba(11, 16, 32, 0.1);
+}
+
+.ld-pricing:has(#ld-monthly:checked) .ld-price--annual,
+.ld-pricing:has(#ld-annual:checked) .ld-price--monthly {
+  display: none;
+}
+
+.ld-plans {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: clamp(14px, 2vw, 24px);
+}
+
+.ld-plan {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 28px 26px 30px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+}
+
+.ld-plan--featured {
+  border-color: var(--accent);
+  box-shadow: 0 12px 40px rgba(61, 107, 255, 0.12);
+}
+
+.ld-plan__name {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.ld-plan__price {
+  font-size: clamp(2.1rem, 3.4vw, 2.8rem);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+
+.ld-plan__price small {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--muted);
+  letter-spacing: 0;
+}
+
+.ld-plan ul {
+  display: grid;
+  gap: 9px;
+  flex: 1;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+.ld-plan li {
+  display: grid;
+  grid-template-columns: 16px 1fr;
+  gap: 9px;
+  align-items: start;
+}
+
+.ld-plan li svg {
+  margin-top: 3px;
+  color: var(--accent);
+}
+
+/* ------------------------------------------------------------------ note */
+
+.ld-note {
+  background: var(--surface);
+}
+
+.ld-note__inner {
+  max-width: 68ch;
+}
+
+.ld-note p {
+  font-size: 1rem;
+  line-height: 1.65;
+  color: var(--muted);
+}
+
+.ld-note p + p {
+  margin-top: 1.1em;
+}
+
+.ld-note strong {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.ld-note code {
+  font-family: var(--font-mono);
+  font-size: 0.86em;
+  background: rgba(61, 107, 255, 0.1);
+  color: var(--accent-strong);
+  padding: 2px 6px;
+  border-radius: 5px;
+}
